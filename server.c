@@ -33,12 +33,20 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
+//iniparser Libraries
+#include "iniparser.h"
+
+
 /* Definations */
 #define DEFAULT_BUFLEN 1024
-#define PORT <CHANGEME>
+#define PORT 2045
 
 void PANIC(char* msg);
 #define PANIC(msg)  { perror(msg); exit(-1); }
+
+
+void iniParserFunction(char * fileName);
+
 
 /*--------------------------------------------------------------------*/
 /*--- Child - echo server                                         ---*/
@@ -76,7 +84,11 @@ int main(int argc, char *argv[])
 {   int sd,opt,optval;
     struct sockaddr_in addr;
     unsigned short port=0;
-
+	
+	
+	iniParserFunction("server.ini");
+	
+	
     while ((opt = getopt(argc, argv, "p:")) != -1) {
         switch (opt) {
         case 'p':
@@ -122,4 +134,26 @@ int main(int argc, char *argv[])
             pthread_detach(child);  /* disassociate from parent */
     }
     return 0;
+}
+
+void iniParserFunction(char * fileName){
+	
+    dictionary  *ini ;
+	char *serverMsg;
+	int serverPort;
+	
+    ini = iniparser_load(fileName);
+    if (ini==NULL) {
+        fprintf(stderr, "unable to parse ini file: %s\n", fileName);
+        
+    }
+    //iniparser_dump(ini, stderr);
+
+    serverPort = iniparser_getint(ini, "server:ListenPort", -1);
+    printf("%d this is \n", serverPort);
+    
+    //serverMsg=iniparser_getstring(ini, "server:ServerMsg", NULL);
+    //strncpy(serverM, serverMsg,  strlen(serverMsg));
+    //printf("server msg:  %s\n",serverM);
+        
 }
