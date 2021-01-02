@@ -49,7 +49,7 @@ void PANIC(char* msg);
 
 
 void iniParserFunction(char * fileName);
-
+int checkFile(char * , char *);
 
 //global variables
 
@@ -60,7 +60,7 @@ void iniParserFunction(char * fileName);
 void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
 	//char welcome[DEFAULT_BUFLEN];
-	char clientName[20], command[6];
+	char clientName[20], command[6], mailTo[20];
     int bytes_read;
     int client = *(int *)arg;
     
@@ -78,11 +78,20 @@ void* Child(void* arg)
 			strcpy(command, strtok(line, " "));
 			strcpy(clientName, strtok(NULL, " "));
 			printf("%s",clientName);
-			sprintf(line, "250 Hello %s %s, Pleased to meet you\n", clientName, command);
+			clientName[strcspn(clientName, "\n")] = 0;
+			sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
 			printf("%s",line);
 			send(client, line, strlen(line), 0);
 			memset(line, '\0', strlen(line));
-        	//printf("\n%s",clientName);
+			
+			bytes_read = recv(client, line, sizeof(line), 0);
+			if (bytes_read > 0) {
+				strcpy(command, strtok(line, ":"));
+				strcpy(mailTo, strtok(NULL, ":"));
+				if(checkFile("ban_domain.cfg", "spammer.com"))
+					printf("\n250 server ok");
+			}
+        	printf("\n%s, %s",command, mailTo);
         
         	/*if ( (bytes_read=send(client, line, bytes_read, 0)) < 0 ) {
                         printf("Send failed\n");
@@ -180,4 +189,35 @@ void iniParserFunction(char * fileName){
     //strncpy(serverM, serverMsg,  strlen(serverMsg));
     printf("server msg:  %s\n Domain name: %s\n",serverName, domain);
         
+}
+
+int checkFile(char *file, char *str){
+	 
+	FILE *fptr;
+	char * line = NULL;
+	size_t len = 0;
+    ssize_t read;
+    int flag;
+    
+    fptr = fopen(file, "r");
+    if (fptr == NULL) {
+        printf("Error! opening file");
+        // Program exits if file pointer returns NULL.
+        //exit(1);
+    }
+
+    // reads text until newline is encountered
+    while ((read = getline(&line, &len, fptr)) != -1){
+    	 //line[strcspn(line, "\n")] = 0;
+    	 //printf("\n%s", str);
+    	if (strstr(line,str )!=NULL) {
+            flag = 1;
+            break;
+        }
+        flag = 0;
+        //printf("\nNot found");
+	}
+    
+    fclose(fptr);
+	return flag;	
 }
