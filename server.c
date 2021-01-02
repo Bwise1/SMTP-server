@@ -59,20 +59,32 @@ void iniParserFunction(char * fileName);
 /*--------------------------------------------------------------------*/
 void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
+	//char welcome[DEFAULT_BUFLEN];
+	char clientName[20], command[6];
     int bytes_read;
     int client = *(int *)arg;
-    strcpy(line,serverName);
+    
+    sprintf(line, "220 %s <%s>\n",serverName,domain );
     
     send(client, line, strlen(line), 0);
-
+	memset(line, '\0', strlen(line));
     do
-    {
+    {	
         bytes_read = recv(client, line, sizeof(line), 0);
+			
         if (bytes_read > 0) {
-                if ( (bytes_read=send(client, line, bytes_read, 0)) < 0 ) {
+        
+			strcpy(command, strtok(line, " "));
+			strcpy(clientName, strtok(NULL, " "));
+			sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
+			send(client, line, strlen(line), 0);
+			memset(line, '\0', strlen(line));
+        	//printf("\n%s",clientName);
+        
+        	/*if ( (bytes_read=send(client, line, bytes_read, 0)) < 0 ) {
                         printf("Send failed\n");
                         break;
-                }
+                }*/
         } else if (bytes_read == 0 ) {
                 printf("Connection closed by client\n");
                 break;
