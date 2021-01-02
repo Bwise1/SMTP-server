@@ -73,10 +73,13 @@ void* Child(void* arg)
         bytes_read = recv(client, line, sizeof(line), 0);
 			
         if (bytes_read > 0) {
-        
+        	
+        	
 			strcpy(command, strtok(line, " "));
 			strcpy(clientName, strtok(NULL, " "));
-			sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
+			printf("%s",clientName);
+			sprintf(line, "250 Hello %s %s, Pleased to meet you\n", clientName, command);
+			printf("%s",line);
 			send(client, line, strlen(line), 0);
 			memset(line, '\0', strlen(line));
         	//printf("\n%s",clientName);
