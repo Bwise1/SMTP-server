@@ -36,7 +36,10 @@
 //iniparser Libraries
 #include "iniparser.h"
 
-
+//Variables
+char *serverName;
+char *domain;
+	
 /* Definations */
 #define DEFAULT_BUFLEN 1024
 #define PORT 2045
@@ -48,6 +51,9 @@ void PANIC(char* msg);
 void iniParserFunction(char * fileName);
 
 
+//global variables
+
+
 /*--------------------------------------------------------------------*/
 /*--- Child - echo server                                         ---*/
 /*--------------------------------------------------------------------*/
@@ -55,6 +61,9 @@ void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
     int bytes_read;
     int client = *(int *)arg;
+    strcpy(line,serverName);
+    
+    send(client, line, strlen(line), 0);
 
     do
     {
@@ -139,7 +148,6 @@ int main(int argc, char *argv[])
 void iniParserFunction(char * fileName){
 	
     dictionary  *ini ;
-	char *serverMsg;
 	int serverPort;
 	
     ini = iniparser_load(fileName);
@@ -152,8 +160,9 @@ void iniParserFunction(char * fileName){
     serverPort = iniparser_getint(ini, "server:ListenPort", -1);
     printf("%d this is \n", serverPort);
     
-    //serverMsg=iniparser_getstring(ini, "server:ServerMsg", NULL);
+    serverName = iniparser_getstring(ini, "server:ServerName", NULL);
+    domain = iniparser_getstring(ini, "server:DomainName", NULL);
     //strncpy(serverM, serverMsg,  strlen(serverMsg));
-    //printf("server msg:  %s\n",serverM);
+    printf("server msg:  %s\n Domain name: %s\n",serverName, domain);
         
 }
