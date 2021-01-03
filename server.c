@@ -39,6 +39,7 @@
 //Variables
 char *serverName;
 char *domain;
+
 	
 /* Definations */
 #define DEFAULT_BUFLEN 1024
@@ -51,7 +52,7 @@ void PANIC(char* msg);
 void iniParserFunction(char * fileName);
 int checkFile(char * , char *);
 void remove_spaces(char* s);
-int checkUsers(char * , char *);
+int checkUsers(char * , char []);
 //global variables
 
 
@@ -61,7 +62,7 @@ int checkUsers(char * , char *);
 void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
 	//char welcome[DEFAULT_BUFLEN];
-	char clientName[20], command[6], rcptTo[20], mailFrom[20], userName[20];
+	char clientName[20], command[6], rcptTo[20], mailFrom[20], userName[20], tempDomain[20];
     int bytes_read;
     int client = *(int *)arg;
     
@@ -122,8 +123,16 @@ void* Child(void* arg)
 				rcptTo[strcspn(rcptTo, "\n")] = 0;
 				remove_spaces(rcptTo);
 				printf("\n%s", rcptTo);
-				strcpy(userName, strtok(rcptTo, "@"));	
+				strcpy(userName, strtok(rcptTo, "@"));
+				strcpy(tempDomain, strtok(NULL, "@"));
+				
+				if((strstr(domain,tempDomain)==NULL) && (checkUsers("server.ini",userName)==1) )
+					printf("\nOK");
+				else
+					printf("\nNot Equal");
 				printf("\n%s", userName);
+				printf("\n%s", tempDomain);
+				//printf("\n%d",checkUsers("server.ini",userName));
 			}
 			
 		
@@ -221,7 +230,7 @@ void iniParserFunction(char * fileName){
         
 }
 
-int checkUsers(char * fileName, char *user){
+int checkUsers(char * fileName, char user[]){
 	dictionary  *ini ;
 	int i,flag;
     ini = iniparser_load(fileName);
