@@ -50,7 +50,7 @@ void PANIC(char* msg);
 
 void iniParserFunction(char * fileName);
 int checkFile(char * , char *);
-
+void remove_spaces(char* s);
 //global variables
 
 
@@ -60,7 +60,7 @@ int checkFile(char * , char *);
 void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
 	//char welcome[DEFAULT_BUFLEN];
-	char clientName[20], command[6], mailTo[20];
+	char clientName[20], command[6], mailFrom[20];
     int bytes_read;
     int client = *(int *)arg;
     
@@ -87,11 +87,32 @@ void* Child(void* arg)
 			bytes_read = recv(client, line, sizeof(line), 0);
 			if (bytes_read > 0) {
 				strcpy(command, strtok(line, ":"));
-				strcpy(mailTo, strtok(NULL, ":"));
-				if(checkFile("ban_domain.cfg", "spammer.com"))
-					printf("\n250 server ok");
+				strcpy(mailFrom, strtok(NULL, ":"));
+				mailFrom[strcspn(mailFrom, "\n")] = 0;
+				printf("%s",mailFrom);
+				remove_spaces(mailFrom);
+				printf("%s",mailFrom);
+				if (!checkFile("ban_domain.cfg", mailFrom)){
+					sprintf(line, "250 %s... Sender Ok\n", mailFrom);
+					send(client, line, strlen(line), 0);
+				}
+					
+				else{
+					sprintf(line, "250 %s... Sender not Ok\n", mailFrom);
+					send(client, line, strlen(line), 0);
+					close(client);
+				}
 			}
-        	printf("\n%s, %s",command, mailTo);
+			memset(line, '\0', strlen(line));
+			bytes_read = recv(client, line, sizeof(line), 0);
+			printf("\n%s", line);
+			//if (bytes_read > 0) {
+				//strcpy(command, strtok(line, ":"));
+				//strcpy(mailFrom, strtok(NULL, ":"));
+				//sprintf(line, "250 %s... Sender Ok\n", mailFrom);
+				//send(client, line, strlen(line), 0);
+			//}
+        	//printf("\n%s%s",command, mailTo);
         
         	/*if ( (bytes_read=send(client, line, bytes_read, 0)) < 0 ) {
                         printf("Send failed\n");
@@ -208,16 +229,26 @@ int checkFile(char *file, char *str){
 
     // reads text until newline is encountered
     while ((read = getline(&line, &len, fptr)) != -1){
-    	 //line[strcspn(line, "\n")] = 0;
-    	 //printf("\n%s", str);
+    	 line[strcspn(line, "\n")] = 0;
+    	 printf("\n%s", str);
     	if (strstr(line,str )!=NULL) {
             flag = 1;
             break;
         }
-        flag = 0;
+        else
+        	flag = 0;
         //printf("\nNot found");
 	}
     
     fclose(fptr);
 	return flag;	
+}
+
+void remove_spaces(char* s) {
+    const char* d = s;
+    do {
+        while (*d == ' ') {
+            ++d;
+        }
+    } while (*s++ = *d++);
 }
