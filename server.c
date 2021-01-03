@@ -51,6 +51,7 @@ void PANIC(char* msg);
 void iniParserFunction(char * fileName);
 int checkFile(char * , char *);
 void remove_spaces(char* s);
+int checkUsers(char * , char *);
 //global variables
 
 
@@ -60,7 +61,7 @@ void remove_spaces(char* s);
 void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
 	//char welcome[DEFAULT_BUFLEN];
-	char clientName[20], command[6], mailFrom[20];
+	char clientName[20], command[6], rcptTo[20], mailFrom[20], userName[20];
     int bytes_read;
     int client = *(int *)arg;
     
@@ -74,14 +75,24 @@ void* Child(void* arg)
 			
         if (bytes_read > 0) {
         	
-        	
 			strcpy(command, strtok(line, " "));
 			strcpy(clientName, strtok(NULL, " "));
 			printf("%s",clientName);
+			
+			
 			clientName[strcspn(clientName, "\n")] = 0;
-			sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
-			printf("%s",line);
-			send(client, line, strlen(line), 0);
+			remove_spaces(clientName);
+			if (!checkFile("ban_domain.cfg", clientName)){
+				sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
+				send(client, line, strlen(line), 0);
+			}
+					
+			else{
+				sprintf(line, "250 %s... Domain not Ok\n", clientName);
+				send(client, line, strlen(line), 0);
+				close(client);
+			}
+			
 			memset(line, '\0', strlen(line));
 			
 			bytes_read = recv(client, line, sizeof(line), 0);
@@ -92,11 +103,10 @@ void* Child(void* arg)
 				printf("%s",mailFrom);
 				remove_spaces(mailFrom);
 				printf("%s",mailFrom);
-				if (!checkFile("ban_domain.cfg", mailFrom)){
+				if (!checkFile("ban_email.cfg", mailFrom)){
 					sprintf(line, "250 %s... Sender Ok\n", mailFrom);
 					send(client, line, strlen(line), 0);
 				}
-					
 				else{
 					sprintf(line, "250 %s... Sender not Ok\n", mailFrom);
 					send(client, line, strlen(line), 0);
@@ -105,19 +115,18 @@ void* Child(void* arg)
 			}
 			memset(line, '\0', strlen(line));
 			bytes_read = recv(client, line, sizeof(line), 0);
-			printf("\n%s", line);
-			//if (bytes_read > 0) {
-				//strcpy(command, strtok(line, ":"));
-				//strcpy(mailFrom, strtok(NULL, ":"));
-				//sprintf(line, "250 %s... Sender Ok\n", mailFrom);
-				//send(client, line, strlen(line), 0);
-			//}
-        	//printf("\n%s%s",command, mailTo);
-        
-        	/*if ( (bytes_read=send(client, line, bytes_read, 0)) < 0 ) {
-                        printf("Send failed\n");
-                        break;
-                }*/
+			if(bytes_read > 0){
+				printf("\n%s", line);
+				strcpy(command, strtok(line, ":"));
+				strcpy(rcptTo, strtok(NULL, ":"));
+				rcptTo[strcspn(rcptTo, "\n")] = 0;
+				remove_spaces(rcptTo);
+				printf("\n%s", rcptTo);
+				strcpy(userName, strtok(rcptTo, "@"));	
+				printf("\n%s", userName);
+			}
+			
+		
         } else if (bytes_read == 0 ) {
                 printf("Connection closed by client\n");
                 break;
@@ -141,7 +150,7 @@ int main(int argc, char *argv[])
 	
 	
 	iniParserFunction("server.ini");
-	
+	//printf("\n%d",checkUsers("server.ini", "alan"));
 	
     while ((opt = getopt(argc, argv, "p:")) != -1) {
         switch (opt) {
@@ -193,23 +202,45 @@ int main(int argc, char *argv[])
 void iniParserFunction(char * fileName){
 	
     dictionary  *ini ;
-	int serverPort;
-	
+	int serverPort,i;
     ini = iniparser_load(fileName);
+    
     if (ini==NULL) {
         fprintf(stderr, "unable to parse ini file: %s\n", fileName);
         
     }
     //iniparser_dump(ini, stderr);
-
     serverPort = iniparser_getint(ini, "server:ListenPort", -1);
     printf("%d this is \n", serverPort);
     
     serverName = iniparser_getstring(ini, "server:ServerName", NULL);
     domain = iniparser_getstring(ini, "server:DomainName", NULL);
-    //strncpy(serverM, serverMsg,  strlen(serverMsg));
+
+  
     printf("server msg:  %s\n Domain name: %s\n",serverName, domain);
         
+}
+
+int checkUsers(char * fileName, char *user){
+	dictionary  *ini ;
+	int i,flag;
+    ini = iniparser_load(fileName);
+    int size=iniparser_getsecnkeys(ini, "users");
+    const char * keys[size];
+    
+     if (ini==NULL) {
+        fprintf(stderr, "unable to parse ini file: %s\n", fileName);   
+    }
+    iniparser_getseckeys(ini, "users", keys);
+     for (i = 0; i < size; ++i) {
+        if (strstr(keys[i], user )!=NULL) {
+        	flag=1;
+        	break;
+    	}
+        else
+        	flag = 0;
+    }
+    return flag;
 }
 
 int checkFile(char *file, char *str){
