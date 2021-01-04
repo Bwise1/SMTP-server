@@ -26,12 +26,15 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <resolv.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <time.h>  
 
 //iniparser Libraries
 #include "iniparser.h"
@@ -39,6 +42,7 @@
 //Variables
 char *serverName;
 char *domain;
+char *serverRoot;
 
 	
 /* Definations */
@@ -53,6 +57,10 @@ void iniParserFunction(char * fileName);
 int checkFile(char * , char *);
 void remove_spaces(char* s);
 int checkUsers(char * , char []);
+
+struct stat st = {0};
+
+
 //global variables
 
 
@@ -63,8 +71,11 @@ void* Child(void* arg)
 {   char line[DEFAULT_BUFLEN];
 	//char welcome[DEFAULT_BUFLEN];
 	char clientName[20], command[6], rcptTo[20], mailFrom[20], userName[20], tempDomain[20];
+	char mailFileName[255], directory[255];
     int bytes_read;
     int client = *(int *)arg;
+    struct tm* tm;
+    time_t now;
     
     sprintf(line, "220 %s <%s>\n",serverName,domain );
     
@@ -142,18 +153,29 @@ void* Child(void* arg)
 				printf("\n%s", line);
 				sprintf(line, "354 Enter mail, end with . on a line by itself\n");
 				send(client, line, strlen(line), 0);
-			
+				now = time(0);
+    			tm = localtime(&now);
+    			sprintf(directory, "%s/%s",serverRoot,userName);
+    			sprintf(mailFileName, "%s/%s/%04d%02d%02d%02d%02d%02d.mbox",serverRoot,userName,tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour,tm->tm_min,tm->tm_sec);
+				printf("\n%s",mailFileName );
+				if (stat(directory, &st) == -1) {
+    				mkdir(directory, 0700);
+				}
+				FILE * fp = fopen(mailFileName,"w");
 				do {
 					memset(line, '\0', strlen(line));
 					bytes_read = recv(client, line, sizeof(line), 0);
+					fprintf (fp,line);
+					
 					line[strcspn(line, "\n")] = 0;
 					if(strcmp(line, ".") == 0){
 						sprintf(line, "250 Message accepted for delivery\n");
-						send(client, line, strlen(line), 0);
+						send(client, line, strlen(line), 0);	
 						break;	
 					}
 					printf("\n%s",line);	
 				}while(1);
+				fclose(fp);
 				printf("\nDone");
 			}
 		
@@ -242,7 +264,7 @@ void iniParserFunction(char * fileName){
     //iniparser_dump(ini, stderr);
     serverPort = iniparser_getint(ini, "server:ListenPort", -1);
     printf("%d this is \n", serverPort);
-    
+    serverRoot= iniparser_getstring(ini, "server:ServerRoot", NULL);
     serverName = iniparser_getstring(ini, "server:ServerName", NULL);
     domain = iniparser_getstring(ini, "server:DomainName", NULL);
 
