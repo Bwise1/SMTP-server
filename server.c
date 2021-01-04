@@ -126,15 +126,36 @@ void* Child(void* arg)
 				strcpy(userName, strtok(rcptTo, "@"));
 				strcpy(tempDomain, strtok(NULL, "@"));
 				
-				if((strstr(domain,tempDomain)==NULL) && (checkUsers("server.ini",userName)==1) )
-					printf("\nOK");
+				if((strstr(domain,tempDomain)==NULL) && (checkUsers("server.ini",userName)==1) ){
+					sprintf(line, "250 %s ... Recipient ok\n", rcptTo);
+					send(client, line, strlen(line), 0);
+				}	
 				else
 					printf("\nNot Equal");
-				printf("\n%s", userName);
-				printf("\n%s", tempDomain);
+			//	printf("\n%s", userName);
+			//	printf("\n%s", tempDomain);
 				//printf("\n%d",checkUsers("server.ini",userName));
 			}
+			memset(line, '\0', strlen(line));
+			bytes_read = recv(client, line, sizeof(line), 0);
+			if(bytes_read > 0){
+				printf("\n%s", line);
+				sprintf(line, "354 Enter mail, end with . on a line by itself\n");
+				send(client, line, strlen(line), 0);
 			
+				do {
+					memset(line, '\0', strlen(line));
+					bytes_read = recv(client, line, sizeof(line), 0);
+					line[strcspn(line, "\n")] = 0;
+					if(strcmp(line, ".") == 0){
+						sprintf(line, "250 Message accepted for delivery\n");
+						send(client, line, strlen(line), 0);
+						break;	
+					}
+					printf("\n%s",line);	
+				}while(1);
+				printf("\nDone");
+			}
 		
         } else if (bytes_read == 0 ) {
                 printf("Connection closed by client\n");
