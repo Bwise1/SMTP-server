@@ -103,13 +103,14 @@ void* Child(void* arg)
 				}
 						
 				else{
-					sprintf(line, "250 %s... Domain not Ok\n", clientName);
+					sprintf(line, "550 %s... Domain not Ok\n", clientName);
 					send(client, line, strlen(line), 0);
 					close(client);
+					break;
 				}
 			}
 			
-			else if(strstr(line, "MAIL TO")){
+			else if(strstr(line, "MAIL FROM")){
 				strcpy(command, strtok(line, ":"));
 				strcpy(mailFrom, strtok(NULL, ":"));
 				mailFrom[strcspn(mailFrom, "\n")] = 0;
@@ -122,9 +123,10 @@ void* Child(void* arg)
 					send(client, line, strlen(line), 0);
 				}
 				else{
-					sprintf(line, "250 %s... Sender not Ok\n", mailFrom);
+					sprintf(line, "550 %s... Sender not Ok\n", mailFrom);
 					send(client, line, strlen(line), 0);
 					close(client);
+					break;
 				}
 			}
 			
@@ -144,6 +146,10 @@ void* Child(void* arg)
 				}	
 				else
 					printf("\nNot Equal");
+					sprintf(line, "503 no valid recipients.\n");
+					send(client, line, strlen(line), 0);
+					close(client);
+					break;
 			}
 		
 			else if(strstr(line, "DATA")){
