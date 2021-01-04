@@ -83,38 +83,40 @@ void* Child(void* arg)
 	memset(line, '\0', strlen(line));
     do
     {	
-        bytes_read = recv(client, line, sizeof(line), 0);
-			
+        
+		bytes_read = recv(client, line, sizeof(line), 0);
+		
+		
         if (bytes_read > 0) {
         	
-			strcpy(command, strtok(line, " "));
-			strcpy(clientName, strtok(NULL, " "));
-			printf("%s",clientName);
-			
-			
-			clientName[strcspn(clientName, "\n")] = 0;
-			remove_spaces(clientName);
-			if (!checkFile("ban_domain.cfg", clientName)){
-				sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
-				send(client, line, strlen(line), 0);
+			if(strstr(line, "HELO")){
+				strcpy(command, strtok(line, " "));
+				strcpy(clientName, strtok(NULL, " "));
+				printf("%s",clientName);
+				
+				
+				clientName[strcspn(clientName, "\n")] = 0;
+				remove_spaces(clientName);
+				if (!checkFile("ban_domain.cfg", clientName)){
+					sprintf(line, "250 Hello %s, Pleased to meet you\n", clientName);
+					send(client, line, strlen(line), 0);
+				}
+						
+				else{
+					sprintf(line, "250 %s... Domain not Ok\n", clientName);
+					send(client, line, strlen(line), 0);
+					close(client);
+				}
 			}
-					
-			else{
-				sprintf(line, "250 %s... Domain not Ok\n", clientName);
-				send(client, line, strlen(line), 0);
-				close(client);
-			}
 			
-			memset(line, '\0', strlen(line));
-			
-			bytes_read = recv(client, line, sizeof(line), 0);
-			if (bytes_read > 0) {
+			else if(strstr(line, "MAIL TO")){
 				strcpy(command, strtok(line, ":"));
 				strcpy(mailFrom, strtok(NULL, ":"));
 				mailFrom[strcspn(mailFrom, "\n")] = 0;
 				printf("%s",mailFrom);
 				remove_spaces(mailFrom);
 				printf("%s",mailFrom);
+				
 				if (!checkFile("ban_email.cfg", mailFrom)){
 					sprintf(line, "250 %s... Sender Ok\n", mailFrom);
 					send(client, line, strlen(line), 0);
@@ -125,9 +127,8 @@ void* Child(void* arg)
 					close(client);
 				}
 			}
-			memset(line, '\0', strlen(line));
-			bytes_read = recv(client, line, sizeof(line), 0);
-			if(bytes_read > 0){
+			
+			else if(strstr(line, "RCPT TO")){
 				printf("\n%s", line);
 				strcpy(command, strtok(line, ":"));
 				strcpy(rcptTo, strtok(NULL, ":"));
@@ -143,13 +144,9 @@ void* Child(void* arg)
 				}	
 				else
 					printf("\nNot Equal");
-			//	printf("\n%s", userName);
-			//	printf("\n%s", tempDomain);
-				//printf("\n%d",checkUsers("server.ini",userName));
 			}
-			memset(line, '\0', strlen(line));
-			bytes_read = recv(client, line, sizeof(line), 0);
-			if(bytes_read > 0){
+		
+			else if(strstr(line, "DATA")){
 				printf("\n%s", line);
 				sprintf(line, "354 Enter mail, end with . on a line by itself\n");
 				send(client, line, strlen(line), 0);
@@ -162,10 +159,13 @@ void* Child(void* arg)
     				mkdir(directory, 0700);
 				}
 				FILE * fp = fopen(mailFileName,"w");
+				fprintf (fp,"Return-Path: <%s>\n",mailFrom);
+				fprintf (fp,"Received from: from Localhost(127.0.0.1)\n");
+				fprintf (fp,"    by localhost with SMTP\n");
+				fprintf (fp,"    for <%s>\n",rcptTo);
 				do {
 					memset(line, '\0', strlen(line));
 					bytes_read = recv(client, line, sizeof(line), 0);
-					fprintf (fp,line);
 					
 					line[strcspn(line, "\n")] = 0;
 					if(strcmp(line, ".") == 0){
@@ -173,10 +173,17 @@ void* Child(void* arg)
 						send(client, line, strlen(line), 0);	
 						break;	
 					}
-					printf("\n%s",line);	
+					fprintf (fp,line);
+					fprintf (fp,"\n");	
 				}while(1);
 				fclose(fp);
 				printf("\nDone");
+			}
+			else if(strstr(line, "QUIT")){
+				sprintf(line, "221 %s closing connection\n",domain);
+				send(client, line, strlen(line), 0);
+				close(client);
+				break;
 			}
 		
         } else if (bytes_read == 0 ) {

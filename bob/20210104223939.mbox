@@ -1,0 +1,5 @@
+Return-Path: <sender@bar.com>
+Received from: from Localhost(127.0.0.1)
+    by localhost with SMTP
+    for <bob>
+To: bob@foo.comSubject: This is test message for SMTP serverFrom: Example Sender <sender@bar.com>Date: Mon, 04 Jan 2021 21:41:23 +0200This is test message.
