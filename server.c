@@ -144,12 +144,13 @@ void* Child(void* arg)
 					sprintf(line, "250 %s ... Recipient ok\n", rcptTo);
 					send(client, line, strlen(line), 0);
 				}	
-				else
-					printf("\nNot Equal");
+				else{
 					sprintf(line, "503 no valid recipients.\n");
 					send(client, line, strlen(line), 0);
 					close(client);
 					break;
+				}
+					
 			}
 		
 			else if(strstr(line, "DATA")){
